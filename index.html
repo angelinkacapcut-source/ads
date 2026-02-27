@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Steal A Messenger</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0a1a;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;}
+
+/* LOADING */
+#loadingScreen{position:fixed;inset:0;z-index:9999;background:#050510;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;}
+.ld-logo{font-size:1.7rem;font-weight:900;background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.ld-spin{width:48px;height:48px;border:4px solid rgba(124,58,237,.2);border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-txt{color:rgba(255,255,255,.5);font-size:.88rem;letter-spacing:1px;}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;}
+.screen.on{display:flex;}
+
+/* DEVICE SELECT */
+#screenDevice{background:linear-gradient(135deg,#0f0c29,#1a0a2e);flex-direction:column;gap:28px;}
+#screenDevice h2{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.dev-btns{display:flex;gap:18px;}
+.dev-btn{width:150px;height:150px;border-radius:20px;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all .2s;}
+.dev-btn.sel,.dev-btn:hover{border-color:#7c3aed;background:rgba(124,58,237,.18);transform:translateY(-3px);box-shadow:0 0 28px rgba(124,58,237,.4);}
+.dev-btn .di{font-size:2.8rem;}
+.dev-btn .dl{font-size:.95rem;font-weight:700;}
+#devGo{padding:13px 48px;border:none;border-radius:12px;background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s;}
+#devGo:hover{opacity:.85;}
+
+/* LOGIN */
+#screenLogin{background:linear-gradient(135deg,#0f0c29,#302b63,#1a0a2e);flex-direction:column;}
+.lb{background:rgba(255,255,255,.05);border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:44px 52px;min-width:360px;backdrop-filter:blur(20px);box-shadow:0 0 70px rgba(124,58,237,.22);text-align:center;}
+.lb h1{font-size:1.8rem;font-weight:900;background:linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;}
+.lb p{color:rgba(255,255,255,.4);margin-bottom:26px;font-size:.85rem;}
+.lb input{width:100%;padding:12px 15px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:.9rem;margin-bottom:10px;outline:none;transition:border-color .2s;}
+.lb input:focus{border-color:#7c3aed;}
+.lb input::placeholder{color:rgba(255,255,255,.3);}
+.lhint{color:rgba(255,255,255,.28);font-size:.74rem;margin-bottom:16px;}
+.lbtn{width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(90deg,#7c3aed,#2563eb);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:1px;}
+.lbtn:hover{opacity:.85;}
+#btnReg{margin-top:7px;background:rgba(255,255,255,.09)!important;}
+#loginErr{color:#f87171;font-size:.8rem;margin-top:9px;min-height:16px;}
+
+/* BAN */
+#screenBan{background:radial-gradient(ellipse,#1a0505,#050000);flex-direction:column;gap:16px;z-index:9998;}
+.ban-icon{font-size:5rem;animation:bp 1.8s ease-in-out infinite;}
+@keyframes bp{0%,100%{filter:drop-shadow(0 0 18px #ef4444);}50%{filter:drop-shadow(0 0 38px #ef4444);transform:scale(1.08);}}
+.ban-t{font-size:2.8rem;font-weight:900;color:#ef4444;letter-spacing:4px;}
+.ban-s{color:rgba(255,255,255,.5);text-align:center;}
+.ban-r{color:#fbbf24;font-size:1.1rem;font-weight:700;}
+
+/* GAME */
+#gameWrap{position:fixed;inset:0;display:none;}
+canvas{width:100%!important;height:100%!important;}
+
+/* HUD */
+#hud{position:fixed;top:16px;left:16px;pointer-events:none;z-index:50;}
+#hudMoney{font-size:2rem;font-weight:900;color:#fbbf24;text-shadow:0 0 22px rgba(251,191,36,.8);}
+#hudIncome{font-size:.92rem;color:rgba(255,255,255,.6);margin-top:3px;}
+#hudPlayer{font-size:.78rem;color:rgba(255,255,255,.32);margin-top:2px;}
+
+/* ONLINE */
+#onlineList{position:fixed;top:16px;right:16px;min-width:160px;background:rgba(6,6,18,.88);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:12px 15px;z-index:100;backdrop-filter:blur(12px);}
+#onlineList h4{font-size:.68rem;color:rgba(255,255,255,.35);margin-bottom:7px;letter-spacing:1px;text-transform:uppercase;}
+.pe{font-size:.8rem;padding:2px 0;display:flex;align-items:center;gap:7px;}
+.pdot{width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;}
+.pdot.me{background:#fbbf24;}
+.pbadge{font-size:.56rem;background:rgba(239,68,68,.3);color:#f87171;padding:1px 4px;border-radius:3px;}
+
+/* TOP BUTTONS */
+#topBtns{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:100;}
+.tbtn{padding:7px 16px;border:none;border-radius:9px;font-weight:700;font-size:.77rem;cursor:pointer;letter-spacing:1px;transition:all .15s;backdrop-filter:blur(10px);}
+#btnAdmin{background:linear-gradient(90deg,#dc2626,#7c3aed);color:#fff;display:none;}
+#btnSettings{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.15);}
+
+/* SETTINGS OVERLAY */
+#settingsOverlay{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#settingsOverlay.on{display:flex;}
+.sbox{background:#0d0d20;border:1px solid rgba(124,58,237,.3);border-radius:20px;padding:32px 40px;min-width:360px;}
+.sbox h2{color:#a78bfa;font-size:1.2rem;margin-bottom:22px;}
+.srow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:14px;}
+.slbl{font-size:.88rem;color:rgba(255,255,255,.72);font-weight:600;}
+.swrap{flex:1;display:flex;align-items:center;gap:9px;}
+input[type=range]{flex:1;height:5px;-webkit-appearance:none;background:rgba(255,255,255,.1);border-radius:3px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;background:#7c3aed;cursor:pointer;}
+.sval{font-size:.82rem;color:#a78bfa;font-weight:700;min-width:26px;text-align:right;}
+.ssep{height:1px;background:rgba(255,255,255,.07);margin:14px 0;}
+.sbtn{width:100%;padding:11px;border-radius:9px;border:none;font-weight:700;font-size:.86rem;cursor:pointer;margin-top:7px;transition:opacity .2s;}
+.sbtn:hover{opacity:.8;}
+.sb-red{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.28);}
+.sb-pur{background:rgba(124,58,237,.18);color:#a78bfa;border:1px solid rgba(124,58,237,.3);}
+.sb-teal{background:rgba(6,182,212,.1);color:#67e8f9;border:1px solid rgba(6,182,212,.28);}
+
+/* BASE PANEL */
+#basePanel{position:fixed;bottom:26px;left:26px;width:320px;background:rgba(6,6,18,.97);border:1px solid rgba(124,58,237,.28);border-radius:16px;padding:16px;z-index:100;display:none;backdrop-filter:blur(20px);}
+#baseTitle{font-size:.9rem;font-weight:800;color:#60a5fa;margin-bottom:11px;}
+#baseGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:9px;}
+.bslot{aspect-ratio:1;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.16);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;position:relative;}
+.bslot.occ{border-style:solid;border-color:rgba(255,255,255,.2);}
+.sinc{position:absolute;bottom:1px;right:2px;font-size:.48rem;color:#86efac;font-weight:700;}
+#baseIncome{font-size:.76rem;color:#86efac;margin-bottom:9px;}
+#btnLockBase{width:100%;padding:9px;border-radius:50px;border:none;background:linear-gradient(90deg,#dc2626,#b91c1c);color:#fff;font-weight:700;cursor:pointer;font-size:.84rem;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;margin-bottom:7px;box-shadow:0 0 18px rgba(220,38,38,.25);}
+#btnLockBase.locked{background:linear-gradient(90deg,#166534,#15803d);box-shadow:0 0 18px rgba(22,101,52,.35);}
+#lockTimerTxt{text-align:center;font-size:.74rem;color:#fbbf24;margin-bottom:7px;display:none;}
+#btnCloseBase{width:100%;padding:7px;border-radius:7px;border:none;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);font-weight:600;cursor:pointer;font-size:.78rem;}
+
+/* E PROMPT */
+#ePrompt{position:fixed;left:50%;bottom:105px;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:6px;z-index:200;pointer-events:none;}
+.ekey{width:44px;height:44px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.5);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;}
+.elbl{font-size:.78rem;color:#fff;font-weight:600;text-shadow:0 1px 8px #000;white-space:nowrap;}
+#ebar{width:150px;height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;}
+#ebarfill{height:100%;background:linear-gradient(90deg,#7c3aed,#06b6d4);width:0%;border-radius:3px;}
+
+/* STEAL ALERT */
+#stealAlert{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,#7f1d1d,#450a0a);border:2px solid #ef4444;border-radius:16px;padding:20px 42px;text-align:center;z-index:500;opacity:0;transition:transform .2s,opacity .2s;pointer-events:none;}
+#stealAlert.on{transform:translate(-50%,-50%) scale(1);opacity:1;}
+#stealAlert .sai{font-size:2.2rem;display:block;margin-bottom:5px;}
+#stealAlert h2{font-size:1.4rem;font-weight:900;color:#ef4444;letter-spacing:2px;text-shadow:0 0 18px rgba(239,68,68,.8);}
+
+/* NOTIFICATION */
+#notif{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(6,6,18,.97);border:1px solid rgba(255,255,255,.16);border-radius:11px;padding:10px 24px;font-weight:600;font-size:.88rem;z-index:300;pointer-events:none;opacity:0;transition:opacity .3s;max-width:78vw;text-align:center;}
+
+/* EVENT */
+#evtBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.85);background:linear-gradient(135deg,#1a0a2e,#2a0a1a);border:2px solid #fbbf24;border-radius:20px;padding:28px 50px;text-align:center;z-index:400;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;}
+#evtBanner.on{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:all;}
+#evtBanner h2{font-size:1.7rem;color:#fbbf24;margin-bottom:8px;}
+#evtBanner p{color:rgba(255,255,255,.8);margin-bottom:13px;}
+.eclosebtn{padding:8px 28px;background:#fbbf24;color:#000;border:none;border-radius:9px;font-weight:800;cursor:pointer;}
+#evtTimer{position:fixed;top:118px;left:50%;transform:translateX(-50%);background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:9px;padding:4px 14px;font-size:.75rem;color:#fbbf24;z-index:50;pointer-events:none;display:none;}
+#nextEvt{position:fixed;top:146px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:3px 12px;font-size:.68rem;color:rgba(255,255,255,.32);z-index:50;pointer-events:none;}
+
+/* CHAT */
+#chatBox{position:fixed;bottom:92px;left:26px;width:290px;z-index:100;}
+#chatMsgs{height:138px;overflow-y:auto;background:rgba(6,6,18,.72);border-radius:11px 11px 0 0;padding:8px;border:1px solid rgba(255,255,255,.07);border-bottom:none;scrollbar-width:thin;scrollbar-color:#333 transparent;}
+.cm{font-size:.74rem;padding:2px 0;line-height:1.35;word-break:break-word;}
+.cm .cn{font-weight:700;}
+.cm.sys{color:#fbbf24;font-style:italic;}
+#chatRow{display:flex;background:rgba(6,6,18,.9);border:1px solid rgba(255,255,255,.07);border-radius:0 0 11px 11px;overflow:hidden;}
+#chatIn{flex:1;padding:8px 10px;background:transparent;border:none;color:#fff;font-size:.78rem;outline:none;}
+#chatSend{padding:8px 11px;background:rgba(124,58,237,.4);border:none;color:#fff;cursor:pointer;font-weight:700;}
+#muteMsg{font-size:.68rem;color:#f87171;padding:3px 8px;background:rgba(239,68,68,.1);border-radius:4px;margin-bottom:3px;display:none;}
+
+/* CONTROLS HINT */
+#hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.5);border-radius:9px;padding:5px 13px;font-size:.66rem;color:rgba(255,255,255,.38);pointer-events:none;z-index:50;}
+
+/* MOBILE */
+#mobileUI{position:fixed;inset:0;pointer-events:none;z-index:150;display:none;}
+#joyWrap{position:absolute;bottom:90px;left:32px;width:120px;height:120px;pointer-events:all;}
+#joyBase{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.18);position:absolute;}
+#joyThumb{width:48px;height:48px;border-radius:50%;background:rgba(124,58,237,.65);border:2px solid #7c3aed;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 14px rgba(124,58,237,.5);}
+#mobBtns{position:absolute;bottom:90px;right:32px;display:flex;flex-direction:column;gap:12px;pointer-events:all;}
+.mbb{width:62px;height:62px;border-radius:50%;border:2px solid rgba(255,255,255,.22);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:700;cursor:pointer;color:#fff;-webkit-tap-highlight-color:transparent;}
+.mbb:active{background:rgba(255,255,255,.25);}
+#mbJump{background:rgba(37,99,235,.28);border-color:#3b82f6;}
+#mbE{background:rgba(124,58,237,.28);border-color:#7c3aed;}
+#mobCamArea{position:absolute;right:0;top:0;width:58%;height:72%;opacity:.001;pointer-events:all;}
+
+/* ADMIN */
+#adminOverlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.77);display:none;align-items:center;justify-content:center;backdrop-filter:blur(8px);}
+#adminOverlay.on{display:flex;}
+.abox{background:#0a0a1e;border:1px solid rgba(220,38,38,.32);border-radius:18px;padding:24px 28px;width:520px;max-height:82vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#7c3aed transparent;}
+.abox h2{color:#f87171;font-size:1.25rem;margin-bottom:16px;}
+.asec{margin-bottom:14px;}
+.asec h3{font-size:.75rem;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;border-bottom:1px solid rgba(255,255,255,.06);padding-bottom:4px;}
+.arow{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;}
+.ainp{flex:1;min-width:85px;padding:8px 10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:7px;color:#fff;font-size:.78rem;outline:none;}
+.ainp:focus{border-color:#7c3aed;}
+.ab{padding:8px 11px;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-size:.74rem;white-space:nowrap;transition:opacity .15s;}
+.ab:hover{opacity:.8;}
+.ar{background:#dc2626;color:#fff;}.ao{background:#ea580c;color:#fff;}.ag{background:#16a34a;color:#fff;}.ap{background:#7c3aed;color:#fff;}.ay{background:#d97706;color:#000;}
+.evtbtn{width:100%;padding:8px 11px;border:none;border-radius:7px;cursor:pointer;font-weight:700;font-size:.75rem;margin-bottom:4px;text-align:left;color:#fff;}
+.evtbtn:hover{opacity:.8;}
+.banrow{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.16);border-radius:7px;margin-bottom:4px;}
+.bnn{flex:1;font-size:.8rem;font-weight:700;color:#fca5a5;}
+.bnr{font-size:.68rem;color:rgba(255,255,255,.3);flex:1;}
+.ubbtn{padding:3px 9px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:5px;font-size:.7rem;font-weight:700;cursor:pointer;}
+#bannedEmpty{color:rgba(255,255,255,.25);font-size:.78rem;padding:5px 0;}
+.aclose{width:100%;padding:10px;background:rgba(255,255,255,.06);border:none;color:#fff;border-radius:7px;font-weight:700;cursor:pointer;margin-top:7px;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="ld-logo">🎮 STEAL A MESSENGER</div>
+  <div class="ld-spin"></div>
+  <div class="ld-txt" id="ldTxt">Загрузка...</div>
+</div>
+
+<div id="screenBan" class="screen">
+  <div class="ban-icon">🔨</div>
+  <div class="ban-t">ВЫ ЗАБАНЕНЫ</div>
+  <div class="ban-s">Администратор заблокировал вас</div>
+  <div class="ban-r" id="banRsnTxt">—</div>
+</div>
+
+<div id="screenDevice" class="screen">
+  <h2>🎮 ВЫБОР УСТРОЙСТВА</h2>
+  <div class="dev-btns">
+    <div class="dev-btn sel" id="devPC"><div class="di">🖥️</div><div class="dl">ПК</div></div>
+    <div class="dev-btn" id="devPhone"><div class="di">📱</div><div class="dl">ТЕЛЕФОН</div></div>
+  </div>
+  <button id="devGo">ИГРАТЬ →</button>
+</div>
+
+<div id="screenLogin" class="screen">
+  <div class="lb">
+    <h1>STEAL A MESSENGER</h1>
+    <p>Воруй мессенджеры. Захватывай базы.</p>
+    <input type="text" id="inLogin" placeholder="Логин" autocomplete="off"/>
+    <div class="lhint">→ <b id="emailPrev"></b></div>
+    <input type="password" id="inPass" placeholder="Пароль"/>
+    <button class="lbtn" id="btnLogin">ВОЙТИ</button>
+    <button class="lbtn" id="btnReg">РЕГИСТРАЦИЯ</button>
+    <div id="loginErr"></div>
+  </div>
+</div>
+
+<div id="settingsOverlay">
+  <div class="sbox">
+    <h2>⚙️ Настройки</h2>
+    <div class="srow"><div class="slbl">Чувствительность</div><div class="swrap"><input type="range" id="slSens" min="1" max="20" value="5"/><div class="sval" id="valSens">5</div></div></div>
+    <div class="srow"><div class="slbl">Громкость</div><div class="swrap"><input type="range" id="slVol" min="0" max="10" value="7"/><div class="sval" id="valVol">7</div></div></div>
+    <div class="ssep"></div>
+    <button class="sbtn sb-teal" id="btnChangeDevice">📱 Сменить устройство</button>
+    <button class="sbtn sb-red" id="btnLogout">🚪 Выйти из аккаунта</button>
+    <button class="sbtn sb-pur" id="btnCloseSettings">✕ Закрыть</button>
+  </div>
+</div>
+
+<div id="gameWrap">
+  <canvas id="gc"></canvas>
+  <div id="hud"><div id="hudMoney">$0</div><div id="hudIncome">+$0/сек</div><div id="hudPlayer"></div></div>
+  <div id="onlineList"><h4>👥 ОНЛАЙН</h4><div id="onlineEntries"></div></div>
+  <div id="topBtns"><button class="tbtn" id="btnAdmin">⚡ АДМИН</button><button class="tbtn" id="btnSettings">⚙️ Настройки</button></div>
+  <div id="basePanel">
+    <div id="baseTitle">База</div>
+    <div id="baseGrid"></div>
+    <div id="baseIncome"></div>
+    <button id="btnLockBase">🔒 Закрыть базу (60 сек)</button>
+    <div id="lockTimerTxt"></div>
+    <button id="btnCloseBase">✕ Закрыть панель</button>
+  </div>
+  <div id="ePrompt"><div class="ekey">E</div><div class="elbl" id="eLbl">Удержи чтобы украсть</div><div id="ebar"><div id="ebarfill"></div></div></div>
+  <div id="stealAlert"><span class="sai">🚨</span><h2>У ВАС КРАДУТ!</h2></div>
+  <div id="notif"></div>
+  <div id="evtBanner"><h2 id="evtTtl">ИВЕНТ!</h2><p id="evtDsc"></p><button class="eclosebtn" id="btnEvtClose">ПОНЯЛ!</button></div>
+  <div id="evtTimer"></div>
+  <div id="nextEvt"></div>
+  <div id="chatBox">
+    <div id="muteMsg"></div>
+    <div id="chatMsgs"></div>
+    <div id="chatRow"><input id="chatIn" type="text" placeholder="Сообщение..." maxlength="120"/><button id="chatSend">➤</button></div>
+  </div>
+  <div id="mobileUI">
+    <div id="joyWrap"><div id="joyBase"></div><div id="joyThumb"></div></div>
+    <div id="mobBtns"><button class="mbb" id="mbJump">↑</button><button class="mbb" id="mbE">E</button></div>
+    <div id="mobCamArea"></div>
+  </div>
+  <div id="hint">WASD — движение | Space — прыжок | E (удержать у меса) — украсть | E (у базы) — открыть</div>
+</div>
+
+<div id="adminOverlay">
+  <div class="abox">
+    <h2>⚡ ADMIN PANEL</h2>
+    <div class="asec"><h3>📢 Оповещение</h3><div class="arow"><input class="ainp" id="aAnn" placeholder="Текст..."/><button class="ab ap" id="aBtnAnn">ОТПРАВИТЬ</button></div></div>
+    <div class="asec"><h3>🎮 Ивенты</h3><div id="aEvts"></div></div>
+    <div class="asec"><h3>🔨 Бан</h3><div class="arow"><input class="ainp" id="aBanTgt" placeholder="Логин"/><input class="ainp" id="aBanRsn" placeholder="Причина"/><button class="ab ar" id="aBtnBan">БАН</button></div></div>
+    <div class="asec"><h3>📋 Забаненные</h3><div id="bannedList"><div id="bannedEmpty">—</div></div></div>
+    <div class="asec"><h3>🔇 Мут</h3><div class="arow"><input class="ainp" id="aMuteTgt" placeholder="Логин"/><input class="ainp" id="aMuteDur" type="number" value="10" style="max-width:65px"/><span style="color:rgba(255,255,255,.38);font-size:.74rem;align-self:center">мин</span><button class="ab ao" id="aBtnMute">МУТ</button></div></div>
+    <div class="asec"><h3>🎁 Дать меса</h3><div class="arow"><input class="ainp" id="aGiveTgt" placeholder="Логин"/><select class="ainp" id="aGiveMes" style="cursor:pointer"></select><button class="ab ag" id="aBtnGive">ДАТЬ</button></div></div>
+    <div class="asec"><h3>💰 Дать деньги</h3><div class="arow"><input class="ainp" id="aMonTgt" placeholder="Логин"/><input class="ainp" id="aMonAmt" type="number" placeholder="Сумма"/><button class="ab ay" id="aBtnMon">ДАТЬ</button></div></div>
+    <button class="aclose" id="aBtnClose">✕ ЗАКРЫТЬ</button>
+  </div>
+</div>
+
+<!-- Firebase compat (no module needed) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ===== DEBUG OVERLAY =====
+const _d = document.createElement('div');
+_d.id='_debug';
+_d.style.cssText='position:fixed;top:0;left:0;right:0;background:#0a0a0a;color:#00ff44;font:12px monospace;padding:8px 12px;z-index:99999;white-space:pre-wrap;max-height:50vh;overflow:auto;border-bottom:1px solid #333;';
+document.body.appendChild(_d);
+function dbg(msg){ _d.textContent += msg + '\n'; }
+window.onerror = (m,s,l) => { dbg('❌ ERROR: '+m+' at line '+l); };
+window.onunhandledrejection = e => { dbg('❌ PROMISE ERR: '+(e.reason?.message||String(e.reason))); };
+dbg('Script starting...');
+dbg('THREE: '+(typeof THREE));
+dbg('firebase: '+(typeof firebase));
+
+// ===== FIREBASE INIT =====
+try {
+firebase.initializeApp({
+  apiKey:"AIzaSyCpcgmJA3YsTMKrFQS_u-7Xh6Wj7njb1_o",
+  authDomain:"stealamassenger.firebaseapp.com",
+  databaseURL:"https://stealamassenger-default-rtdb.firebaseio.com",
+  projectId:"stealamassenger",
+  storageBucket:"stealamassenger.firebasestorage.app",
+  messagingSenderId:"499224521345",
+  appId:"1:499224521345:web:da8862c56c2d2732ee7b80"
+});
+dbg('Firebase init OK');
+} catch(e){ dbg('Firebase init FAIL: '+e.message); }
+const auth = firebase.auth();
+const db   = firebase.database();
+const $    = id => document.getElementById(id);
+dbg('Auth+DB: OK');
+
+// ===== DATA =====
+const MS=[
+  {id:'telegram',name:'Telegram',e:'✈️',r:'ЛЕГЕНДАРНЫЙ',inc:1000000,spd:1.2},
+  {id:'whatsapp',name:'WhatsApp',e:'📱',r:'ЭПИЧЕСКИЙ',inc:50000,spd:1.0},
+  {id:'discord',name:'Discord',e:'🎮',r:'МИФИЧЕСКИЙ',inc:200000,spd:1.1},
+  {id:'signal',name:'Signal',e:'🔒',r:'РЕДКИЙ',inc:5000,spd:0.9},
+  {id:'viber',name:'Viber',e:'💜',r:'ОБЫЧНЫЙ',inc:500,spd:0.8},
+  {id:'vk',name:'VK',e:'🔵',r:'РЕДКИЙ',inc:8000,spd:0.85},
+  {id:'skype',name:'Skype',e:'🌐',r:'ОБЫЧНЫЙ',inc:300,spd:0.75},
+  {id:'slack',name:'Slack',e:'💼',r:'ЭПИЧЕСКИЙ',inc:40000,spd:1.05},
+  {id:'teams',name:'Teams',e:'🏢',r:'РЕДКИЙ',inc:7000,spd:0.9},
+  {id:'imessage',name:'iMessage',e:'🍎',r:'МИФИЧЕСКИЙ',inc:150000,spd:1.15},
+  {id:'snapchat',name:'Snapchat',e:'👻',r:'ЭПИЧЕСКИЙ',inc:45000,spd:1.1},
+  {id:'wechat',name:'WeChat',e:'🐉',r:'ЛЕГЕНДАРНЫЙ',inc:800000,spd:1.2},
+  {id:'line',name:'LINE',e:'🟢',r:'РЕДКИЙ',inc:6000,spd:0.9},
+  {id:'matrix',name:'Matrix',e:'🔴',r:'УЛЬТРА',inc:5000000,spd:1.5},
+  {id:'icq',name:'ICQ',e:'🌺',r:'ОБЫЧНЫЙ',inc:100,spd:0.6},
+];
+const RC={'ОБЫЧНЫЙ':'#9ca3af','РЕДКИЙ':'#34d399','ЭПИЧЕСКИЙ':'#818cf8','МИФИЧЕСКИЙ':'#f472b6','ЛЕГЕНДАРНЫЙ':'#fbbf24','УЛЬТРА':'#f97316'};
+const RG={'ЭПИЧЕСКИЙ':'#818cf8','МИФИЧЕСКИЙ':'#f472b6','ЛЕГЕНДАРНЫЙ':'#fbbf24','УЛЬТРА':'#f97316'};
+const EVTS=[
+  {id:'double_income',name:'💰 ДВОЙНОЙ ДОХОД',desc:'Доход ×2 на 2 мин!',dur:120,col:'#fbbf24',fx:'double_income'},
+  {id:'speed_boost',name:'⚡ ТУРБО',desc:'Месы ×3 быстрее на 90 сек!',dur:90,col:'#60a5fa',fx:'speed_boost'},
+  {id:'mes_rain',name:'🌧️ ДОЖДЬ МЕСОВ',desc:'10 месов на конвейере!',dur:0,col:'#a78bfa',fx:'mes_rain'},
+  {id:'free_mes',name:'🎁 БЕСПЛАТНЫЙ МЕС',desc:'Каждый получает мес!',dur:0,col:'#34d399',fx:'free_mes'},
+  {id:'steal_range',name:'🔥 ФРЕНЬЗИ',desc:'Радиус кражи ×3 на 60 сек!',dur:60,col:'#ef4444',fx:'steal_range'},
+  {id:'mega_spawn',name:'🚀 МЕГА СПАВН',desc:'20 месов сразу!',dur:0,col:'#f97316',fx:'mega_spawn'},
+  {id:'legendary_drop',name:'👑 ЛЕГЕНДАРНЫЙ ДРОП',desc:'Только легендарные 1 мин!',dur:60,col:'#fbbf24',fx:'legendary_drop'},
+  {id:'gold_rain',name:'🪙 ЗОЛОТОЙ ДОЖДЬ',desc:'Все получают $500K!',dur:0,col:'#fbbf24',fx:'gold_rain'},
+  {id:'fast_travel',name:'🏃 ФОРСАЖ',desc:'Месы летят к базе ×5 на 2 мин!',dur:120,col:'#06b6d4',fx:'fast_travel'},
+];
+const BAD=['блять','сука','нахуй','дауны','даун','долбаеб','конченый','мать','шлюха','еблан','даунище','гей'];
+const hasBad=t=>BAD.some(w=>t.toLowerCase().includes(w));
+const fmt=v=>v>=1e12?'$'+(v/1e12).toFixed(1)+'T':v>=1e9?'$'+(v/1e9).toFixed(1)+'B':v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+(v/1e3).toFixed(1)+'K':'$'+Math.floor(v);
+
+// ===== STATE =====
+let curUser=null, pName='';
+let money=0, income=0;
+let isMuted=false, muteEnd=0;
+let isMobile=false, devChoice='pc';
+let sensitivity=5, volume=7;
+let activeEfx={}, curEvt=null, evtLeft=0, evtCD=600;
+
+// ===== LOADING HELPERS =====
+const LS=$('loadingScreen');
+const LT=$('ldTxt');
+function showLoad(txt){ LS.style.display='flex'; if(txt)LT.textContent=txt; }
+function hideLoad(){ LS.style.display='none'; }
+function showScreen(id){ ['screenDevice','screenLogin','screenBan'].forEach(s=>$(s).classList.remove('on')); if(id)$(id).classList.add('on'); }
+
+// ===== SETTINGS UI =====
+$('slSens').addEventListener('input',e=>{sensitivity=+e.target.value;$('valSens').textContent=sensitivity;});
+$('slVol').addEventListener('input',e=>{volume=+e.target.value;$('valVol').textContent=volume;});
+$('btnCloseSettings').addEventListener('click',()=>$('settingsOverlay').classList.remove('on'));
+$('btnSettings').addEventListener('click',()=>$('settingsOverlay').classList.add('on'));
+$('btnLogout').addEventListener('click',()=>{
+  if(renderer)renderer.setAnimationLoop(null);
+  auth.signOut();
+  $('settingsOverlay').classList.remove('on');
+  $('gameWrap').style.display='none';
+  showScreen('screenLogin');
+});
+$('btnChangeDevice').addEventListener('click',()=>{ $('settingsOverlay').classList.remove('on'); showScreen('screenDevice'); });
+
+// ===== DEVICE SELECT =====
+$('devPC').addEventListener('click',()=>{devChoice='pc';$('devPC').classList.add('sel');$('devPhone').classList.remove('sel');});
+$('devPhone').addEventListener('click',()=>{devChoice='mobile';$('devPhone').classList.add('sel');$('devPC').classList.remove('sel');});
+$('devGo').addEventListener('click',()=>{
+  isMobile = devChoice==='mobile';
+  showScreen(null);
+  if(!curUser){ showScreen('screenLogin'); return; }
+  if(renderer){
+    $('gameWrap').style.display='block';
+    $('mobileUI').style.display = isMobile?'block':'none';
+    $('hint').style.display = isMobile?'none':'block';
+  } else {
+    startGame();
+  }
+});
+
+// ===== AUTH =====
+$('inLogin').addEventListener('input',e=>{
+  $('emailPrev').textContent = e.target.value.trim() ? e.target.value.trim()+'@ttdq.pro' : '';
+});
+$('btnLogin').addEventListener('click',async()=>{
+  $('loginErr').textContent='';
+  const em=$('inLogin').value.trim().toLowerCase()+'@ttdq.pro';
+  const pw=$('inPass').value;
+  try{ await auth.signInWithEmailAndPassword(em,pw); }
+  catch(e){ $('loginErr').textContent='Неверный логин или пароль'; }
+});
+$('btnReg').addEventListener('click',async()=>{
+  $('loginErr').textContent='';
+  const l=$('inLogin').value.trim(), p=$('inPass').value;
+  if(!l){$('loginErr').textContent='Введите логин';return;}
+  if(p.length<6){$('loginErr').textContent='Пароль мин. 6 символов';return;}
+  try{ await auth.createUserWithEmailAndPassword(l.toLowerCase()+'@ttdq.pro',p); }
+  catch(e){ $('loginErr').textContent=e.code==='auth/email-already-in-use'?'Логин занят':'Ошибка'; }
+});
+
+auth.onAuthStateChanged(user=>{
+  dbg('onAuthStateChanged: '+(user?'user='+user.email:'no user'));
+  hideLoad();
+  if(user){
+    curUser=user;
+    showScreen('screenDevice');
+  } else {
+    curUser=null;
+    showScreen('screenLogin');
+  }
+});
+
+// ===== 3D VARS =====
+let scene,camera,renderer,clock;
+let playerMesh,playerVel,playerOnGround=true;
+let bases3D=[],mesObjs=[],travelMes=[],otherPlayers={};
+let baseLocks={}; // {id:{locked,timer,gateGroup,gateCollider}}
+const KEYS={};
+let camYaw=0,camPitch=0.35,camDist=14,ptrLocked=false;
+let nearMes=null,eHoldProg=0,lastEState=false;
+const E_HOLD=1.0;
+const colliders=[];
+
+// Mobile joystick
+let joyX=0,joyY=0,mobCamLast={x:0,y:0},mobCamActive=false;
+
+// ===== START GAME =====
+function startGame(){
+  dbg('startGame called');
+  pName = curUser.email.replace('@ttdq.pro','');
+  $('hudPlayer').textContent = 'Игрок: '+pName;
+
+  showLoad('Строим мир...');
+  try{ buildScene(); dbg('buildScene OK'); } catch(e){ dbg('buildScene FAIL: '+e.message); return; }
+  try{ buildControls(); dbg('buildControls OK'); } catch(e){ dbg('buildControls FAIL: '+e.message); return; }
+  try{ buildAdminUI(); dbg('buildAdminUI OK'); } catch(e){ dbg('buildAdminUI FAIL: '+e.message); return; }
+  hideLoad();
+  $('gameWrap').style.display='block';
+  $('mobileUI').style.display = isMobile?'block':'none';
+  $('hint').style.display = isMobile?'none':'block';
+  if(pName==='dqmjrka') $('btnAdmin').style.display='block';
+  setupFirebase();
+  setupChat();
+  if(isMobile) setupMobile();
+  renderer.setAnimationLoop(loop);
+}
+
+// ===== SCENE =====
+function buildScene(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x87ceeb);
+  scene.fog=new THREE.Fog(0x87ceeb,180,360);
+  clock=new THREE.Clock();
+
+  const canvas=$('gc');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,600);
+  window.addEventListener('resize',()=>{
+    camera.aspect=innerWidth/innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth,innerHeight);
+  });
+
+  scene.add(new THREE.AmbientLight(0xffffff,1.6));
+  const sun=new THREE.DirectionalLight(0xfffce8,3);
+  sun.position.set(60,120,40); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.camera.left=-180; sun.shadow.camera.right=180;
+  sun.shadow.camera.top=180; sun.shadow.camera.bottom=-180;
+  sun.shadow.camera.far=500;
+  scene.add(sun);
+
+  // Ground
+  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshLambertMaterial({color:0x4caf50}));
+  gnd.rotation.x=-Math.PI/2; gnd.receiveShadow=true; scene.add(gnd);
+  const dirt=new THREE.Mesh(new THREE.PlaneGeometry(450,450),new THREE.MeshLambertMaterial({color:0x8B5E3C}));
+  dirt.rotation.x=-Math.PI/2; dirt.position.y=-0.05; scene.add(dirt);
+
+  buildConveyorMesh();
+  buildBaseMeshes();
+  buildDecorations();
+  buildPlayer();
+}
+
+function addBox(w,h,d,col,x,y,z,parent){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:col}));
+  m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true;
+  (parent||scene).add(m); return m;
+}
+
+function buildConveyorMesh(){
+  addBox(330,0.3,18,0x444444,0,0.15,0);
+  const strip=addBox(330,0.06,4.5,0xdd2200,0,0.28,0);
+  strip.material.emissive=new THREE.Color(0x440000);
+  for(let x=-160;x<=160;x+=18){addBox(9,0.05,0.45,0xffffff,x,0.29,6);addBox(9,0.05,0.45,0xffffff,x,0.29,-6);}
+  [-9.5,9.5].forEach(z=>addBox(330,0.4,1,0x888888,0,0.2,z));
+}
+
+function buildBaseMeshes(){
+  const xs=[-105,-35,35,105];
+  [{z:-44,north:true},{z:44,north:false}].forEach(({z,north})=>{
+    xs.forEach((x,i)=>{
+      const id=north?i:i+4;
+      const g=new THREE.Group(); g.position.set(x,0,z);
+
+      // Platform
+      addBox(30,0.5,26,0x888888,0,0.25,0,g);
+      // Green zone
+      addBox(20,0.15,16,0x22cc44,0,0.58,north?1:-1,g);
+      addBox(20.5,0.12,16.5,0xffffff,0,0.57,north?1:-1,g);
+      // Podium
+      addBox(9,1.6,7.5,0xcc2211,0,1.3,north?2:-2,g);
+      const btn=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.1,0.5,12),new THREE.MeshLambertMaterial({color:0xffdd00}));
+      btn.position.set(0,2.35,north?2:-2); g.add(btn);
+
+      // Side walls
+      [-14.5,14.5].forEach(wx=>{
+        addBox(1.6,16,28,0x888888,wx,8,0,g);
+        for(let by=0;by<10;by++){
+          for(let bz=-12;bz<=12;bz+=3){
+            addBox(1.65,1.1,2.6,by%2===0?0x999999:0x777777,wx,by*1.5+0.75,bz+(by%2===0?1.5:0),g);
+          }
+        }
+        // Wall collider
+        const wc=new THREE.Mesh(new THREE.BoxGeometry(1.6,16,28),new THREE.MeshBasicMaterial({visible:false}));
+        wc.position.set(wx,8,0); g.add(wc); colliders.push({obj:wc,hw:0.8,hh:8,hd:14});
+      });
+
+      // Back wall
+      addBox(30,16,2,0x1a1a2a,0,8,north?-13:13,g);
+      const bwc=new THREE.Mesh(new THREE.BoxGeometry(30,16,2),new THREE.MeshBasicMaterial({visible:false}));
+      bwc.position.set(0,8,north?-13:13); g.add(bwc); colliders.push({obj:bwc,hw:15,hh:8,hd:1});
+
+      // Ceiling
+      addBox(30,1.5,28,0xcccccc,0,16,0,g);
+      // Ceiling lights
+      [-7,0,7].forEach(lx=>{
+        const lg=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.4,2.5),new THREE.MeshLambertMaterial({color:0xffffff,emissive:new THREE.Color(0x888888)}));
+        lg.position.set(lx,15.4,0); g.add(lg);
+        const pl=new THREE.PointLight(0xffffff,1.8,22); pl.position.set(lx,14,0); g.add(pl);
+      });
+
+      // Front frames
+      addBox(16,13,1.5,0x111122,0,6.5,north?13.3:-13.3,g);
+      [[-8.5],[8.5]].forEach(([fx])=>addBox(1.2,13,1.8,0xffffff,fx,6.5,north?13.2:-13.2,g));
+      addBox(18,1.2,1.8,0xffffff,0,13.3,north?13.2:-13.2,g);
+
+      // Sign
+      addBox(24,4.5,1.2,0xd4956a,0,19.5,0,g);
+      for(let dx=-10.5;dx<=10.5;dx+=2.1){[20.6,18.4].forEach(dy=>addBox(1.7,0.5,1.3,0xbb7744,dx,dy,0,g));}
+      const ns=mkTxt('База #'+(id+1),28,'#fff',null,220,52); ns.scale.set(11,2.6,1); ns.position.set(0,19.5,0.8); g.add(ns); g.userData.nameSprite=ns;
+
+      // GATE (locked bars)
+      const gateGrp=new THREE.Group(); gateGrp.position.set(0,0,north?13:-13); gateGrp.visible=false;
+      for(let bx=-6;bx<=6;bx+=3){const bar=new THREE.Mesh(new THREE.BoxGeometry(0.8,14,0.8),new THREE.MeshLambertMaterial({color:0xee1111,emissive:new THREE.Color(0x550000)}));bar.position.set(bx,7,0);gateGrp.add(bar);}
+      [2,6,10].forEach(by=>{const hb=new THREE.Mesh(new THREE.BoxGeometry(16,0.6,0.8),new THREE.MeshLambertMaterial({color:0xee1111,emissive:new THREE.Color(0x550000)}));hb.position.set(0,by,0);gateGrp.add(hb);});
+      g.add(gateGrp);
+
+      // Gate collider
+      const gc2=new THREE.Mesh(new THREE.BoxGeometry(16,15,1),new THREE.MeshBasicMaterial({visible:false}));
+      gc2.position.set(0,7.5,north?13:-13); gc2.userData.isGate=true; gc2.userData.active=false;
+      g.add(gc2); colliders.push({obj:gc2,hw:8,hh:7.5,hd:0.5,gate:gc2});
+
+      // Slots 4×2
+      const slots=[];
+      for(let row=0;row<2;row++) for(let col=0;col<4;col++){
+        const sp=addBox(4.2,0.2,3.8,0x1a1a3a,-5.8+col*4,0.65,-5+row*4.2,g);
+        slots.push({mesh:sp,occupied:false,mesObj:null,mesData:null,localPos:new THREE.Vector3(-5.8+col*4,1.5,-5+row*4.2)});
+      }
+
+      // Path
+      const path=new THREE.Mesh(new THREE.PlaneGeometry(5,Math.abs(z)-10),new THREE.MeshLambertMaterial({color:0x555555}));
+      path.rotation.x=-Math.PI/2;
+      path.position.set(x,0.02,z>0?z-(Math.abs(z)-10)/2-10:z+(Math.abs(z)-10)/2+10);
+      scene.add(path);
+
+      scene.add(g);
+      baseLocks[id]={locked:false,timer:0,gateGroup:gateGrp,gateCollider:gc2,_alertSent:false};
+      bases3D.push({id,group:g,position:new THREE.Vector3(x,0,z),slots,ownerId:null,ownerName:null,north});
+    });
+  });
+}
+
+function buildDecorations(){
+  for(let i=0;i<26;i++){const a=(i/26)*Math.PI*2,r=155+Math.random()*20;mkTree(Math.cos(a)*r,Math.sin(a)*r);}
+  for(let i=0;i<8;i++) mkTree(-120+Math.random()*240,(Math.random()<.5?1:-1)*(82+Math.random()*36));
+}
+function mkTree(x,z){
+  addBox(1.4,7,1.4,0x8B5E3C,x,3.5,z);
+  const c=new THREE.Mesh(new THREE.SphereGeometry(4+Math.random()*2,6,6),new THREE.MeshLambertMaterial({color:[0x2d8a4e,0x1a6b35,0x3aaa60][~~(Math.random()*3)]}));
+  c.position.set(x,10+Math.random()*2,z); c.castShadow=true; scene.add(c);
+  colliders.push({obj:null,wx:x,wy:3.5,wz:z,hw:1.2,hh:3.5,hd:1.2,static:true});
+}
+
+function buildPlayer(){
+  const g=new THREE.Group();
+  const bodyM=new THREE.MeshLambertMaterial({color:0x3b82f6});
+  const b=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.8,0.8),bodyM); b.position.y=0.9; b.castShadow=true; g.add(b);
+  const h=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xfbbf24})); h.position.y=2.3; h.castShadow=true; g.add(h);
+  [-0.85,0.85].forEach((ax,i)=>{const arm=new THREE.Mesh(new THREE.BoxGeometry(0.35,1.2,0.35),bodyM);arm.position.set(ax,0.8,0);arm.castShadow=true;g.add(arm);g.userData['arm'+i]=arm;});
+  [-0.33,0.33].forEach((lx,i)=>{const leg=new THREE.Mesh(new THREE.BoxGeometry(0.42,1.1,0.42),new THREE.MeshLambertMaterial({color:0x1e3a5f}));leg.position.set(lx,-0.25,0);leg.castShadow=true;g.add(leg);g.userData['leg'+i]=leg;});
+  const ns=mkTxt(pName,20,'#fff','rgba(0,0,0,.55)',180,36); ns.scale.set(4,0.8,1); ns.position.set(0,3.9,0); g.add(ns);
+  g.position.set(0,1,22); scene.add(g); playerMesh=g; playerVel=new THREE.Vector3();
+}
+
+// ===== CONTROLS =====
+function buildControls(){
+  document.addEventListener('keydown',e=>{KEYS[e.code]=true;});
+  document.addEventListener('keyup',e=>{
+    KEYS[e.code]=false;
+    if(e.code==='KeyE'){eHoldProg=0;$('ebarfill').style.width='0%';lastEState=false;}
+  });
+  $('gc').addEventListener('click',()=>{if(!isMobile&&!ptrLocked)$('gc').requestPointerLock();});
+  document.addEventListener('pointerlockchange',()=>{ptrLocked=document.pointerLockElement===$('gc');});
+  document.addEventListener('mousemove',e=>{
+    if(!ptrLocked)return;
+    const s=sensitivity*0.0006;
+    camYaw-=e.movementX*s;
+    camPitch=Math.max(-0.05,Math.min(1.3,camPitch-e.movementY*s));
+  });
+  document.addEventListener('wheel',e=>{camDist=Math.max(0.5,Math.min(50,camDist+e.deltaY*0.02));});
+  $('btnCloseBase').addEventListener('click',()=>$('basePanel').style.display='none');
+  $('btnLockBase').addEventListener('click',()=>{
+    const base=bases3D.find(b=>b.ownerId===curUser.uid);
+    if(!base||baseLocks[base.id].locked)return;
+    lockBase(base.id);
+    db.ref('bases/'+base.id).update({locked:true,lockedAt:firebase.database.ServerValue.TIMESTAMP});
+  });
+  $('btnEvtClose').addEventListener('click',()=>$('evtBanner').classList.remove('on'));
+}
+
+function setupMobile(){
+  const wrap=$('joyWrap'),thumb=$('joyThumb');
+  let active=false;
+  const R=46, cx=60, cy=60;
+  wrap.addEventListener('touchstart',e=>{e.preventDefault();active=true;},{passive:false});
+  wrap.addEventListener('touchmove',e=>{
+    e.preventDefault();if(!active)return;
+    const t=e.touches[0],rect=wrap.getBoundingClientRect();
+    let dx=t.clientX-rect.left-cx, dy=t.clientY-rect.top-cy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist>R){dx=dx/dist*R;dy=dy/dist*R;}
+    thumb.style.left=(cx+dx-24)+'px'; thumb.style.top=(cy+dy-24)+'px';
+    joyX=dx/R; joyY=dy/R;
+  },{passive:false});
+  wrap.addEventListener('touchend',()=>{active=false;thumb.style.left='36px';thumb.style.top='36px';joyX=0;joyY=0;});
+  $('mbJump').addEventListener('touchstart',e=>{e.preventDefault();KEYS['Space']=true;},{passive:false});
+  $('mbJump').addEventListener('touchend',e=>{e.preventDefault();KEYS['Space']=false;},{passive:false});
+  $('mbE').addEventListener('touchstart',e=>{e.preventDefault();KEYS['KeyE']=true;},{passive:false});
+  $('mbE').addEventListener('touchend',e=>{e.preventDefault();KEYS['KeyE']=false;eHoldProg=0;$('ebarfill').style.width='0%';lastEState=false;},{passive:false});
+  const mc=$('mobCamArea');
+  mc.addEventListener('touchstart',e=>{e.preventDefault();mobCamActive=true;const t=e.touches[0];mobCamLast={x:t.clientX,y:t.clientY};},{passive:false});
+  mc.addEventListener('touchmove',e=>{
+    e.preventDefault();if(!mobCamActive)return;
+    const t=e.touches[0];
+    camYaw-=(t.clientX-mobCamLast.x)*0.005;
+    camPitch=Math.max(-0.05,Math.min(1.3,camPitch-(t.clientY-mobCamLast.y)*0.005));
+    mobCamLast={x:t.clientX,y:t.clientY};
+  },{passive:false});
+  mc.addEventListener('touchend',()=>{mobCamActive=false;});
+}
+
+// ===== LABEL HELPERS =====
+function mkLbl(m){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=128;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle='rgba(8,8,22,.93)'; rr(ctx,0,0,256,128,14); ctx.fill();
+  ctx.strokeStyle=RC[m.r]||'#fff'; ctx.lineWidth=3; rr(ctx,1.5,1.5,253,125,13); ctx.stroke();
+  ctx.font='28px serif'; ctx.fillText(m.e,12,42);
+  ctx.fillStyle='#fff'; ctx.font='bold 17px sans-serif'; ctx.fillText(m.name,50,32);
+  ctx.fillStyle=RC[m.r]||'#fff'; ctx.font='bold 12px sans-serif'; ctx.fillText(m.r,50,52);
+  ctx.fillStyle='#86efac'; ctx.font='12px sans-serif'; ctx.fillText(fmt(m.inc)+'/сек',12,80);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true}));
+  s.scale.set(4.5,2.25,1); return s;
+}
+function mkTxt(text,fs,color,bg,w,h){
+  const cv=document.createElement('canvas'); cv.width=w||256; cv.height=h||64;
+  const ctx=cv.getContext('2d');
+  if(bg){ctx.fillStyle=bg;rr(ctx,0,0,cv.width,cv.height,8);ctx.fill();}
+  ctx.fillStyle=color||'#fff'; ctx.font=`bold ${fs||20}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(text,cv.width/2,cv.height/2);
+  return new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true}));
+}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+
+// ===== CONVEYOR SPAWN =====
+let convT=0;
+function spawnMes(){
+  let pool=MS;
+  if(activeEfx.legendary_drop) pool=MS.filter(m=>m.r==='ЛЕГЕНДАРНЫЙ'||m.r==='УЛЬТРА');
+  const m=pool[~~(Math.random()*pool.length)];
+  const g=new THREE.Group(); g.position.set(-160,1,0);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1,1.5,1),new THREE.MeshLambertMaterial({color:new THREE.Color(RC[m.r])}));
+  body.position.y=0.75; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.8,0.8,0.8),new THREE.MeshLambertMaterial({color:0xfbbf24}));
+  head.position.y=1.9; g.add(head);
+  [-0.28,0.28].forEach((lx,i)=>{const leg=new THREE.Mesh(new THREE.BoxGeometry(0.38,0.9,0.38),new THREE.MeshLambertMaterial({color:new THREE.Color(RC[m.r]).multiplyScalar(0.7)}));leg.position.set(lx,-0.3,0);g.add(leg);g.userData['leg'+i]=leg;});
+  if(RG[m.r]){const gl=new THREE.Mesh(new THREE.SphereGeometry(1.5,6,6),new THREE.MeshBasicMaterial({color:new THREE.Color(RG[m.r]),transparent:true,opacity:0.22}));g.add(gl);}
+  const lbl=mkLbl(m); lbl.position.set(0,3.8,0); g.add(lbl);
+  scene.add(g);
+  mesObjs.push({group:g,m,legAnim:0,stolen:false});
+}
+
+function spawnTravelMes(m,base,slot){
+  const g=new THREE.Group(); g.position.copy(playerMesh.position);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.9,1.4,0.9),new THREE.MeshLambertMaterial({color:new THREE.Color(RC[m.r])}));
+  body.position.y=0.7; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.75,0.75,0.75),new THREE.MeshLambertMaterial({color:0xfbbf24}));
+  head.position.y=1.85; g.add(head);
+  mkLbl(m).then; // no-op, just add label
+  const lbl=mkLbl(m); lbl.position.set(0,3.2,0); g.add(lbl);
+  scene.add(g); slot.occupied=true;
+  const wt=base.group.localToWorld(slot.localPos.clone());
+  travelMes.push({group:g,m,base,slot,wt});
+}
+
+function placeMesOnSlot(base,slot,m){
+  if(slot.mesObj) base.group.remove(slot.mesObj);
+  const g=new THREE.Group(); g.position.copy(slot.localPos);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.85,1.3,0.85),new THREE.MeshLambertMaterial({color:new THREE.Color(RC[m.r])}));
+  body.position.y=0.65; g.add(body);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.65,0.65,0.65),new THREE.MeshLambertMaterial({color:0xfbbf24}));
+  head.position.y=1.6; g.add(head);
+  if(RG[m.r]){const gl=new THREE.Mesh(new THREE.SphereGeometry(0.9,6,6),new THREE.MeshBasicMaterial({color:new THREE.Color(RG[m.r]),transparent:true,opacity:0.28}));g.add(gl);}
+  const lbl=mkTxt(m.e+' '+m.name,13,'#fff','rgba(0,0,0,.6)',160,30);lbl.scale.set(3,0.6,1);lbl.position.set(0,2.5,0);g.add(lbl);
+  base.group.add(g); slot.mesObj=g; slot.mesData=m; income+=m.inc;
+}
+
+// ===== LOCK/UNLOCK BASE =====
+function lockBase(id){
+  const lk=baseLocks[id]; lk.locked=true; lk.timer=60;
+  lk.gateGroup.visible=true; lk.gateCollider.userData.active=true;
+  $('lockTimerTxt').style.display='block';
+  $('btnLockBase').classList.add('locked');
+  $('btnLockBase').textContent='🔓 База закрыта...';
+  showNotif('🔒 База закрыта на 60 секунд!');
+}
+function unlockBase(id){
+  const lk=baseLocks[id]; lk.locked=false; lk.timer=0;
+  lk.gateGroup.visible=false; lk.gateCollider.userData.active=false;
+  $('lockTimerTxt').style.display='none';
+  $('btnLockBase').classList.remove('locked');
+  $('btnLockBase').textContent='🔒 Закрыть базу (60 сек)';
+  showNotif('🔓 База открыта!');
+}
+
+// ===== BASE PANEL =====
+function openBase(id){
+  const b=bases3D[id];
+  if(!b.ownerId){b.ownerId=curUser.uid;b.ownerName=pName;saveBase(id);updSign(b);showNotif('🏆 База #'+(id+1)+' захвачена!');}
+  $('baseTitle').textContent='🏠 База #'+(id+1)+' — '+(b.ownerName||'Свободная');
+  renderSlots(b);
+  const isOwner=b.ownerId===curUser.uid;
+  $('btnLockBase').style.display=isOwner?'flex':'none';
+  const lk=baseLocks[id];
+  $('btnLockBase').classList.toggle('locked',lk.locked);
+  $('btnLockBase').textContent=lk.locked?'🔓 База закрыта...':'🔒 Закрыть базу (60 сек)';
+  $('basePanel').style.display='block';
+}
+function updSign(b){
+  if(b.group.userData.nameSprite) b.group.remove(b.group.userData.nameSprite);
+  const ns=mkTxt(b.ownerName||'База #'+(b.id+1),26,'#fff',null,240,52);
+  ns.scale.set(11,2.6,1); ns.position.set(0,19.5,0.8); b.group.add(ns); b.group.userData.nameSprite=ns;
+}
+function renderSlots(b){
+  const grid=$('baseGrid'); grid.innerHTML=''; let tot=0;
+  b.slots.forEach(s=>{
+    const d=document.createElement('div'); d.className='bslot'+(s.occupied?' occ':'');
+    if(s.mesData){d.textContent=s.mesData.e;const inc=document.createElement('span');inc.className='sinc';inc.textContent=fmt(s.mesData.inc)+'/s';d.appendChild(inc);tot+=s.mesData.inc;}
+    grid.appendChild(d);
+  });
+  $('baseIncome').textContent='💰 Доход: '+fmt(tot)+'/сек';
+}
+
+// ===== AUDIO =====
+let audioCtx=null;
+function beep(){
+  try{
+    if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const g=audioCtx.createGain(); g.gain.value=0.4*(volume/10); g.connect(audioCtx.destination);
+    const o=audioCtx.createOscillator(); o.type='sine'; o.frequency.value=880;
+    o.connect(g); o.start(); o.stop(audioCtx.currentTime+1.5);
+  }catch(e){}
+}
+let stealAlertTimer=0;
+function triggerStealAlert(){
+  beep();
+  $('stealAlert').classList.add('on');
+  stealAlertTimer=3;
+}
+
+// ===== FIREBASE =====
+function setupFirebase(){
+  db.ref('players/'+curUser.uid+'/presence').set({name:pName,online:true,lastSeen:firebase.database.ServerValue.TIMESTAMP});
+  db.ref('players/'+curUser.uid+'/presence').onDisconnect().update({online:false});
+  db.ref('players/'+curUser.uid+'/money').get().then(s=>{if(s.exists())money=s.val();});
+
+  // Ban check on load
+  db.ref('players/'+curUser.uid).get().then(s=>{
+    if(s.exists()&&s.val().banned) showBan(s.val().banReason);
+  });
+
+  // Online players
+  db.ref('players').on('value',snap=>{
+    if(!snap.exists())return;
+    const data=snap.val();
+    const el=$('onlineEntries'); el.innerHTML='';
+    Object.entries(data).forEach(([uid,pd])=>{
+      if(!pd.presence?.online)return;
+      const d=document.createElement('div'); d.className='pe';
+      const dot=document.createElement('div'); dot.className='pdot'+(uid===curUser.uid?' me':''); 
+      const nm=document.createElement('span'); nm.textContent=pd.presence.name||'?';
+      d.appendChild(dot); d.appendChild(nm);
+      if(pd.banned){const b=document.createElement('span');b.className='pbadge';b.textContent='БАН';d.appendChild(b);}
+      el.appendChild(d);
+      if(uid===curUser.uid){
+        if(pd.banned) showBan(pd.banReason);
+        if(pd.mutedUntil&&pd.mutedUntil>Date.now()&&!isMuted){isMuted=true;muteEnd=pd.mutedUntil;$('chatIn').disabled=true;setTimeout(()=>{isMuted=false;$('chatIn').disabled=false;},pd.mutedUntil-Date.now());}
+      }
+    });
+    // Other players
+    Object.entries(data).forEach(([uid,pd])=>{
+      if(uid===curUser.uid||!pd.pos)return;
+      if(!otherPlayers[uid]) otherPlayers[uid]=mkOther(pd.presence?.name||'?');
+      otherPlayers[uid].group.position.set(pd.pos.x||0,pd.pos.y||1,pd.pos.z||0);
+      otherPlayers[uid].group.rotation.y=pd.pos.ry||0;
+    });
+    if(pName==='dqmjrka') refreshBanned(data);
+  });
+
+  db.ref('bases').on('value',snap=>{
+    if(!snap.exists())return;
+    Object.entries(snap.val()).forEach(([bid,bd])=>{
+      const idx=parseInt(bid); if(!bases3D[idx])return;
+      bases3D[idx].ownerId=bd.ownerId; bases3D[idx].ownerName=bd.ownerName; updSign(bases3D[idx]);
+      if(bd.locked&&!baseLocks[idx].locked){baseLocks[idx].locked=true;baseLocks[idx].timer=60;baseLocks[idx].gateGroup.visible=true;baseLocks[idx].gateCollider.userData.active=true;}
+    });
+  });
+
+  db.ref('events/current').on('value',snap=>{if(!snap.exists())return;const ev=snap.val();if(ev?.id)triggerEvent(ev.id);});
+  db.ref('announcements').on('value',snap=>{if(!snap.exists())return;const d=snap.val();if(d?.text){showNotif('📢 АДМИН: '+d.text,7000);sysMsg('📢 '+d.text);}});
+  db.ref('players/'+curUser.uid+'/pendingMes').on('value',snap=>{
+    if(!snap.exists())return;const mid=snap.val();if(!mid)return;
+    const m=MS.find(x=>x.id===mid);
+    if(m){const base=bases3D.find(b=>b.ownerId===curUser.uid);if(base){const s=base.slots.find(x=>!x.occupied);if(s)spawnTravelMes(m,base,s);}}
+    db.ref('players/'+curUser.uid+'/pendingMes').remove();
+  });
+  db.ref('players/'+curUser.uid+'/pendingMoney').on('value',snap=>{
+    if(!snap.exists())return;const amt=snap.val();if(!amt)return;money+=amt;showNotif('💰 Вам +'+fmt(amt)+'!');db.ref('players/'+curUser.uid+'/pendingMoney').remove();
+  });
+  db.ref('stealAlerts/'+curUser.uid).on('value',snap=>{
+    if(!snap.exists())return;const d=snap.val();if(!d)return;triggerStealAlert();db.ref('stealAlerts/'+curUser.uid).remove();
+  });
+}
+
+function showBan(reason){
+  $('banRsnTxt').textContent=reason||'Без причины';
+  $('screenBan').classList.add('on');
+  $('gameWrap').style.display='none';
+  if(renderer)renderer.setAnimationLoop(null);
+  document.exitPointerLock&&document.exitPointerLock();
+}
+
+function mkOther(name){
+  const g=new THREE.Group();
+  const b=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.8,0.8),new THREE.MeshLambertMaterial({color:0xef4444}));b.position.y=0.9;g.add(b);
+  const h=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshLambertMaterial({color:0xfbbf24}));h.position.y=2.3;g.add(h);
+  const ns=mkTxt(name,18,'#fff','rgba(0,0,0,.6)',160,34);ns.scale.set(3.5,0.75,1);ns.position.set(0,3.9,0);g.add(ns);
+  scene.add(g);return{group:g};
+}
+
+let syncT2=0,saveT2=0;
+function savePlayer(){if(!curUser)return;db.ref('players/'+curUser.uid).update({money:Math.floor(money),income:Math.floor(income)});}
+function saveBase(id){const b=bases3D[id];db.ref('bases/'+id).set({ownerId:b.ownerId,ownerName:b.ownerName});}
+
+// ===== CHAT =====
+function setupChat(){
+  const inp=$('chatIn'),btn=$('chatSend');
+  const send=()=>{
+    const t=inp.value.trim();if(!t)return;
+    if(isMuted&&Date.now()<muteEnd){$('muteMsg').style.display='block';$('muteMsg').textContent='🔇 Мут ещё '+Math.ceil((muteEnd-Date.now())/1000)+' сек';return;}
+    isMuted=false;$('muteMsg').style.display='none';
+    if(hasBad(t)){
+      const mu=Date.now()+3*60000;
+      db.ref('players/'+curUser.uid).update({mutedUntil:mu});
+      isMuted=true;muteEnd=mu;inp.disabled=true;
+      setTimeout(()=>{inp.disabled=false;isMuted=false;$('muteMsg').style.display='none';},3*60000);
+      $('muteMsg').style.display='block';$('muteMsg').textContent='🔇 Мут 3 мин';inp.value='';return;
+    }
+    db.ref('chat').push({name:pName,text:t,ts:firebase.database.ServerValue.TIMESTAMP});
+    inp.value='';
+  };
+  btn.addEventListener('click',send);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();send();}});
+  db.ref('chat').on('value',snap=>{
+    if(!snap.exists())return;
+    const msgs=Object.values(snap.val()).slice(-60);
+    const el=$('chatMsgs');el.innerHTML='';
+    msgs.forEach(m=>{const d=document.createElement('div');d.className='cm';const cn=document.createElement('span');cn.className='cn';cn.style.color=m.name===pName?'#fbbf24':'#60a5fa';cn.textContent=m.name+': ';d.appendChild(cn);d.appendChild(document.createTextNode(m.text));el.appendChild(d);});
+    el.scrollTop=el.scrollHeight;
+  });
+}
+function sysMsg(t){const el=$('chatMsgs');const d=document.createElement('div');d.className='cm sys';d.textContent=t;el.appendChild(d);el.scrollTop=el.scrollHeight;}
+
+// ===== EVENTS =====
+function triggerEvent(evId){
+  const ev=EVTS.find(e=>e.id===evId);if(!ev)return;
+  curEvt=ev;
+  $('evtTtl').textContent=ev.name; $('evtDsc').textContent=ev.desc;
+  $('evtBanner').style.borderColor=ev.col; $('evtBanner').classList.add('on');
+  setTimeout(()=>$('evtBanner').classList.remove('on'),5500);
+  sysMsg('🎮 ИВЕНТ: '+ev.name);
+  if(ev.dur>0){activeEfx[ev.fx]=true;evtLeft=ev.dur;$('evtTimer').style.display='block';}
+  if(ev.fx==='double_income') income*=2;
+  if(ev.fx==='mes_rain'){for(let i=0;i<10;i++)setTimeout(spawnMes,i*200);}
+  if(ev.fx==='mega_spawn'){for(let i=0;i<20;i++)setTimeout(spawnMes,i*80);}
+  if(ev.fx==='gold_rain'){money+=500000;showNotif('🪙 +$500K!');}
+  if(ev.fx==='free_mes'){const fm=MS[~~(Math.random()*MS.length)];const base=bases3D.find(b=>b.ownerId===curUser.uid);if(base){const s=base.slots.find(x=>!x.occupied);if(s)spawnTravelMes(fm,base,s);}showNotif('🎁 Бесплатный мес: '+fm.name+'!');}
+}
+
+// ===== ADMIN =====
+function buildAdminUI(){
+  const ec=$('aEvts');
+  EVTS.forEach(ev=>{const b=document.createElement('button');b.className='evtbtn';b.style.cssText=`background:${ev.col}22;border:1px solid ${ev.col}44;`;b.textContent=ev.name;b.addEventListener('click',()=>{db.ref('events/current').set({id:ev.id,startedAt:firebase.database.ServerValue.TIMESTAMP});showNotif('🎮 '+ev.name);});ec.appendChild(b);});
+  const sel=$('aGiveMes');MS.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.e+' '+m.name;sel.appendChild(o);});
+  $('btnAdmin').addEventListener('click',()=>{$('adminOverlay').classList.add('on');db.ref('players').get().then(s=>{if(s.exists())refreshBanned(s.val());});});
+  $('aBtnClose').addEventListener('click',()=>$('adminOverlay').classList.remove('on'));
+  $('aBtnAnn').addEventListener('click',()=>{const t=$('aAnn').value.trim();if(!t)return;db.ref('announcements').set({text:t,by:pName,ts:firebase.database.ServerValue.TIMESTAMP});$('aAnn').value='';showNotif('📢 Отправлено!');});
+
+  async function uidOf(name){const s=await db.ref('players').get();if(!s.exists())return null;return Object.entries(s.val()).find(([u,p])=>p.presence?.name===name)?.[0]||null;}
+  $('aBtnBan').addEventListener('click',async()=>{const t=$('aBanTgt').value.trim(),r=$('aBanRsn').value.trim()||'—';if(!t)return;const u=await uidOf(t);if(!u){showNotif('❌ Не найден');return;}db.ref('players/'+u).update({banned:true,banReason:r});showNotif('🔨 '+t+' забанен');$('aBanTgt').value='';$('aBanRsn').value='';});
+  $('aBtnMute').addEventListener('click',async()=>{const t=$('aMuteTgt').value.trim(),m=parseInt($('aMuteDur').value)||10;if(!t)return;const u=await uidOf(t);if(!u){showNotif('❌ Не найден');return;}db.ref('players/'+u).update({mutedUntil:Date.now()+m*60000});showNotif('🔇 '+t+' замучен '+m+' мин');$('aMuteTgt').value='';});
+  $('aBtnGive').addEventListener('click',async()=>{const t=$('aGiveTgt').value.trim(),mid=$('aGiveMes').value;if(!t)return;const u=await uidOf(t);if(!u){showNotif('❌ Не найден');return;}db.ref('players/'+u).update({pendingMes:mid});showNotif('🎁 Выдан '+mid+' → '+t);$('aGiveTgt').value='';});
+  $('aBtnMon').addEventListener('click',async()=>{const t=$('aMonTgt').value.trim(),amt=parseFloat($('aMonAmt').value)||0;if(!t||amt<=0)return;const u=await uidOf(t);if(!u){showNotif('❌ Не найден');return;}const s=await db.ref('players/'+u+'/money').get();db.ref('players/'+u).update({money:(s.exists()?s.val():0)+amt});showNotif('💰 '+fmt(amt)+' → '+t);$('aMonTgt').value='';$('aMonAmt').value='';});
+}
+
+function refreshBanned(data){
+  const el=$('bannedList');if(!el)return;
+  const banned=Object.entries(data).filter(([u,p])=>p.banned);
+  el.innerHTML='';
+  if(!banned.length){el.innerHTML='<div id="bannedEmpty">Нет забаненных ✅</div>';return;}
+  banned.forEach(([uid,pd])=>{
+    const name=pd.presence?.name||uid.slice(0,8), reason=pd.banReason||'—';
+    const row=document.createElement('div');row.className='banrow';
+    row.innerHTML=`<div class="bnn">🔨 ${name}</div><div class="bnr">${reason}</div><button class="ubbtn">РАЗБАН</button>`;
+    row.querySelector('.ubbtn').addEventListener('click',()=>{db.ref('players/'+uid).update({banned:false,banReason:null});showNotif('✅ '+name+' разбанен!');});
+    el.appendChild(row);
+  });
+}
+
+// ===== COLLISION =====
+function resolveCollisions(){
+  const px=playerMesh.position.x, py=playerMesh.position.y+1, pz=playerMesh.position.z;
+  const pw=0.5, ph=1, pd2=0.5;
+  colliders.forEach(c=>{
+    if(c.gate&&!c.gate.userData.active)return;
+    let wx,wy,wz;
+    if(c.static){wx=c.wx;wy=c.wy;wz=c.wz;}
+    else{const v=new THREE.Vector3();c.obj.getWorldPosition(v);wx=v.x;wy=v.y;wz=v.z;}
+    const ox=Math.abs(px-wx)-(pw+c.hw);
+    const oz=Math.abs(pz-wz)-(pd2+c.hd);
+    const oy=Math.abs(py-wy)-(ph+c.hh);
+    if(ox<0&&oz<0&&oy<0){
+      if(ox>oz){playerMesh.position.x+=px>wx?-ox:ox;}
+      else{playerMesh.position.z+=pz>wz?-oz:oz;}
+    }
+  });
+}
+
+// ===== MAIN LOOP =====
+const SPEED=18,GRAV=-30,JUMP=12;
+let incT=0;
+
+function loop(){
+  const dt=Math.min(clock.getDelta(),0.05);
+  movePlayer(dt);
+  updateConveyor(dt);
+  updateTravelMes(dt);
+  updateELogic(dt);
+  updateLocks(dt);
+  updateEvents(dt);
+  incT+=dt;if(incT>=1){incT=0;money+=income;}
+  if(stealAlertTimer>0){stealAlertTimer-=dt;if(stealAlertTimer<=0)$('stealAlert').classList.remove('on');}
+  resolveCollisions();
+  updateCam();
+  $('hudMoney').textContent=fmt(money);
+  $('hudIncome').textContent='+'+fmt(income)+'/сек';
+  syncT2+=dt;if(syncT2>0.1){syncT2=0;db.ref('players/'+curUser.uid+'/pos').update({x:+playerMesh.position.x.toFixed(1),y:+playerMesh.position.y.toFixed(1),z:+playerMesh.position.z.toFixed(1),ry:+playerMesh.rotation.y.toFixed(2)});}
+  saveT2+=dt;if(saveT2>5){saveT2=0;savePlayer();}
+  renderer.render(scene,camera);
+}
+
+function movePlayer(dt){
+  const fwd=new THREE.Vector3(-Math.sin(camYaw),0,-Math.cos(camYaw));
+  const right=new THREE.Vector3(Math.cos(camYaw),0,-Math.sin(camYaw));
+  let mx=0,mz=0;
+  if(KEYS['KeyW']||joyY<-0.2){mx+=fwd.x;mz+=fwd.z;}
+  if(KEYS['KeyS']||joyY>0.2){mx-=fwd.x;mz-=fwd.z;}
+  if(KEYS['KeyA']||joyX<-0.2){mx-=right.x;mz-=right.z;}
+  if(KEYS['KeyD']||joyX>0.2){mx+=right.x;mz+=right.z;}
+  if(isMobile&&(Math.abs(joyX)>0.2||Math.abs(joyY)>0.2)){
+    const len=Math.sqrt(mx*mx+mz*mz);if(len>0){mx=mx/len*Math.min(1,Math.abs(joyX>0.2||joyX<-0.2?joyX:joyY));mz=mz/len*Math.min(1,Math.abs(joyX>0.2||joyX<-0.2?joyX:joyY));}}
+  const len=Math.sqrt(mx*mx+mz*mz);if(len>0){mx/=len;mz/=len;}
+  playerVel.x=mx*SPEED; playerVel.z=mz*SPEED;
+  if(KEYS['Space']&&playerOnGround){playerVel.y=JUMP;playerOnGround=false;}
+  playerVel.y+=GRAV*dt;
+  playerMesh.position.x+=playerVel.x*dt;
+  playerMesh.position.y+=playerVel.y*dt;
+  playerMesh.position.z+=playerVel.z*dt;
+  if(playerMesh.position.y<=1){playerMesh.position.y=1;playerVel.y=0;playerOnGround=true;}
+  playerMesh.position.x=Math.max(-162,Math.min(162,playerMesh.position.x));
+  playerMesh.position.z=Math.max(-155,Math.min(155,playerMesh.position.z));
+  if(len>0) playerMesh.rotation.y=Math.atan2(mx,mz);
+  if(len>0){const t=performance.now()*0.01;['leg0','leg1','arm0','arm1'].forEach((k,i)=>{if(playerMesh.userData[k])playerMesh.userData[k].rotation.x=Math.sin(t+(i%2?Math.PI:0))*(i<2?0.6:0.5);});}
+}
+
+function updateConveyor(dt){
+  convT+=dt;if(convT>=2.5){convT=0;spawnMes();}
+  const spd=activeEfx.speed_boost?45:15;
+  nearMes=null;let minD=Infinity;
+  for(let i=mesObjs.length-1;i>=0;i--){
+    const m=mesObjs[i];
+    if(m.stolen){scene.remove(m.group);mesObjs.splice(i,1);continue;}
+    m.group.position.x+=spd*dt; m.group.rotation.y=-Math.PI/2;
+    m.legAnim=(m.legAnim||0)+dt*6;
+    if(m.group.userData.leg0)m.group.userData.leg0.rotation.x=Math.sin(m.legAnim)*0.5;
+    if(m.group.userData.leg1)m.group.userData.leg1.rotation.x=Math.sin(m.legAnim+Math.PI)*0.5;
+    const d=m.group.position.distanceTo(playerMesh.position);
+    const range=activeEfx.steal_range?13:5;
+    if(d<range&&d<minD){minD=d;nearMes=m;}
+    if(m.group.position.x>165){scene.remove(m.group);mesObjs.splice(i,1);}
+  }
+  const pr=$('ePrompt');
+  if(nearMes){pr.style.display='flex';$('eLbl').textContent=nearMes.m.e+' '+nearMes.m.name+' — удержи E';}
+  else{const nb=bases3D.find(b=>playerMesh.position.distanceTo(b.position)<22);if(nb){pr.style.display='flex';$('eLbl').textContent=nb.ownerId?'База #'+(nb.id+1)+' — E':'E — захватить базу #'+(nb.id+1);}else{pr.style.display='none';if(!KEYS['KeyE']){eHoldProg=0;$('ebarfill').style.width='0%';}}}
+}
+
+function updateELogic(dt){
+  if(!KEYS['KeyE']){lastEState=false;return;}
+  if(nearMes){
+    eHoldProg+=dt; $('ebarfill').style.width=(eHoldProg/E_HOLD*100)+'%';
+    if(eHoldProg>=E_HOLD){
+      eHoldProg=0; $('ebarfill').style.width='0%';
+      if(!nearMes.stolen){
+        nearMes.stolen=true;
+        const base=bases3D.find(b=>b.ownerId===curUser.uid);
+        if(!base){showNotif('⚠️ Захвати базу сначала!');nearMes.stolen=false;return;}
+        const lk=baseLocks[base.id];
+        if(lk.locked){showNotif('🔒 Твоя база закрыта!');nearMes.stolen=false;return;}
+        const s=base.slots.find(x=>!x.occupied);if(!s){showNotif('❌ Нет слотов!');nearMes.stolen=false;return;}
+        spawnTravelMes(nearMes.m,base,s); showNotif('🎉 Украл '+nearMes.m.name+'!');
+      }
+    }
+  } else if(!lastEState){
+    lastEState=true;
+    const nb=bases3D.find(b=>playerMesh.position.distanceTo(b.position)<22);
+    if(nb) openBase(nb.id);
+  }
+}
+
+function updateTravelMes(dt){
+  const spd=activeEfx.fast_travel?5:1;
+  for(let i=travelMes.length-1;i>=0;i--){
+    const tm=travelMes[i];
+    const d=tm.group.position.distanceTo(tm.wt);
+    if(d<0.6){placeMesOnSlot(tm.base,tm.slot,tm.m);renderSlots(tm.base);scene.remove(tm.group);travelMes.splice(i,1);continue;}
+    const dir=tm.wt.clone().sub(tm.group.position).normalize();
+    tm.group.position.addScaledVector(dir,8*tm.m.spd*spd*dt);
+    tm.group.rotation.y=Math.atan2(dir.x,dir.z);
+  }
+}
+
+function updateLocks(dt){
+  Object.entries(baseLocks).forEach(([id,lk])=>{
+    if(!lk.locked)return;
+    lk.timer-=dt;
+    // Pulse glow
+    const pulse=Math.sin(performance.now()*0.006)*0.5+0.5;
+    lk.gateGroup.children.forEach(c=>{if(c.material&&c.material.emissive)c.material.emissive.setRGB(pulse*0.5,0.02,0.02);});
+    // Show timer in panel if owner
+    const base=bases3D[parseInt(id)];
+    if(base&&base.ownerId===curUser.uid){
+      $('lockTimerTxt').style.display='block';
+      $('lockTimerTxt').textContent='⏱ Откроется через: '+Math.max(0,Math.ceil(lk.timer))+'с';
+    }
+    // Alert if enemy enters
+    if(base&&base.ownerId&&base.ownerId!==curUser.uid){
+      if(playerMesh.position.distanceTo(base.position)<18&&!lk._alertSent){
+        lk._alertSent=true;
+        db.ref('stealAlerts/'+base.ownerId).set({by:pName,ts:firebase.database.ServerValue.TIMESTAMP});
+        setTimeout(()=>{lk._alertSent=false;},5000);
+      }
+    }
+    if(lk.timer<=0){
+      unlockBase(parseInt(id));
+      if(base&&base.ownerId===curUser.uid) db.ref('bases/'+id).update({locked:false});
+    }
+  });
+}
+
+function updateEvents(dt){
+  evtCD-=dt; $('nextEvt').textContent='⏰ Ивент через: '+Math.max(0,Math.ceil(evtCD))+'с';
+  if(evtCD<=0){evtCD=600;const ev=EVTS[~~(Math.random()*EVTS.length)];db.ref('events/current').set({id:ev.id,startedAt:firebase.database.ServerValue.TIMESTAMP});triggerEvent(ev.id);}
+  if(curEvt&&curEvt.dur>0){
+    evtLeft-=dt; $('evtTimer').style.display='block'; $('evtTimer').textContent=curEvt.name+' — '+Math.max(0,Math.ceil(evtLeft))+'с';
+    if(evtLeft<=0){if(curEvt.fx==='double_income')income=Math.max(0,income/2);activeEfx[curEvt.fx]=false;delete activeEfx[curEvt.fx];curEvt=null;$('evtTimer').style.display='none';}
+  }
+}
+
+function updateCam(){
+  const px=playerMesh.position.x,py=playerMesh.position.y,pz=playerMesh.position.z;
+  if(camDist<1.5){camera.position.set(px,py+1.8,pz);camera.rotation.order='YXZ';camera.rotation.y=camYaw;camera.rotation.x=-camPitch;}
+  else{const ox=Math.sin(camYaw)*Math.cos(camPitch)*camDist,oy=Math.sin(camPitch)*camDist+2,oz=Math.cos(camYaw)*Math.cos(camPitch)*camDist;camera.position.set(px+ox,py+oy,pz+oz);camera.lookAt(px,py+1.5,pz);}
+}
+
+// ===== NOTIFICATION =====
+let notifT=null;
+function showNotif(msg,dur=3500){const el=$('notif');el.textContent=msg;el.style.opacity='1';if(notifT)clearTimeout(notifT);notifT=setTimeout(()=>el.style.opacity='0',dur);}
+</script>
+</body>
+</html>
